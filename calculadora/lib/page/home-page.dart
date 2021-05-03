@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -8,8 +7,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String operaciones = "";
-  String resultadoOperaciones = "";
+  String operaciones = " ";
+  String resultadoOperaciones = " ";
+  List<Text> listaResultados = [];
+  String mensaje = "";
+  bool error = false;
 
   @override
   Widget build(BuildContext context) {
@@ -27,13 +29,12 @@ class _HomePageState extends State<HomePage> {
         Expanded(
           child: Container(
             color: Colors.white,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(resultadoOperaciones,
-                    style: TextStyle(fontSize: 70, color: Colors.red)),
-              ],
-            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: listaResultados,
+              ),
+            ]),
           ),
         ),
         Container(
@@ -43,7 +44,8 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(operaciones,
-                  style: TextStyle(fontSize: 50, color: Colors.white)),
+                  style: TextStyle(fontSize: 20, color: Colors.white)),
+              Text(mensaje),
             ],
           ),
         ),
@@ -111,16 +113,11 @@ class _HomePageState extends State<HomePage> {
                     height: 64,
                     child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                            primary: Colors.black,
+                            primary: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(50))),
-                        onPressed: () {
-                          //setState(() {
-                          // operaciones = "  ";
-                          // resultadoOperaciones = "";
-                          //});
-                        },
-                        child: Text("CE",
+                        onPressed: () {},
+                        child: Text("",
                             style:
                                 TextStyle(fontSize: 50, color: Colors.white))),
                   )
@@ -376,6 +373,8 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () {
                           setState(() {
                             operaciones = "";
+                            error = false;
+                            mensaje = "";
                           });
                         },
                         child: Text("C",
@@ -390,10 +389,21 @@ class _HomePageState extends State<HomePage> {
                             primary: Colors.blue,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(50))),
-                        onPressed: _calcularOperacion,
+                        onPressed: () {
+                          setState(() {
+                            double result = _funciones(operaciones);
+                            if (error) {
+                              mensaje = "Operación invalida";
+                            } else {
+                              listaResultados
+                                  .add(Text("$operaciones = $result"));
+                              operaciones = "$result";
+                            }
+                          });
+                        },
                         child: Text(("="),
                             style:
-                                TextStyle(fontSize: 50, color: Colors.white))),
+                                TextStyle(fontSize: 20, color: Colors.white))),
                   ),
                   SizedBox(
                       width: 64,
@@ -420,48 +430,52 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _calcularOperacion() {
-    var arreglo = operaciones.split(" ");
-    if (arreglo[1].trim() == "-") {
-      var resultado = int.parse(arreglo[0]) - int.parse(arreglo[2]);
-      setState(() {
-        resultadoOperaciones = '$resultado';
-      });
-    }
-    if (arreglo[1].trim() == "+") {
-      var resultado = int.parse(arreglo[0]) + int.parse(arreglo[2]);
-      setState(() {
-        resultadoOperaciones = '$resultado';
-      });
-    }
-    if (arreglo[1].trim() == "*") {
-      var resultado = int.parse(arreglo[0]) * int.parse(arreglo[2]);
-      setState(() {
-        resultadoOperaciones = '$resultado';
-      });
-    }
-    if (arreglo[1].trim() == "/") {
-      var resultado = int.parse(arreglo[0]) / int.parse(arreglo[2]);
-      setState(() {
-        resultadoOperaciones = '$resultado';
-      });
-    }
-
-    if (arreglo[1].trim() == "²") {
-      var resultado = int.parse(arreglo[0]) * int.parse(arreglo[0]);
-      resultado = resultado % 1 == 0 ? resultado.round() : resultado;
-      setState(() {
-        resultadoOperaciones = '$resultado';
-      });
-    }
-
-    if (arreglo[0].trim() == "√") {
-      double numero = double.parse(arreglo[1]);
-      double resultado = sqrt(25);
-      resultado = resultado % 1 == 0 ? resultado.round() : resultado;
-      setState(() {
-        resultadoOperaciones = '$resultado';
-      });
+  double _funciones(String operacion) {
+    try {
+      double result = 0;
+      if (operacion.indexOf(" + ") != -1) {
+        List<String> simbolo = operacion.split(" + ");
+        for (String valor in simbolo) {
+          result += _funciones(valor);
+        }
+      } else if (operacion.indexOf(" - ") != -1) {
+        List<String> simbolo = operacion.split(" - ");
+        result += _funciones(simbolo.elementAt(0));
+        for (var i = 1; i < simbolo.length; i++) {
+          result -= _funciones(simbolo.elementAt(i));
+        }
+      } else if (operacion.indexOf(" / ") != -1) {
+        List<String> simbolo = operacion.split(" / ");
+        result += _funciones(simbolo.elementAt(0));
+        for (var i = 1; i < simbolo.length; i++) {
+          result = result / _funciones(simbolo.elementAt(i));
+        }
+      } else if (operacion.indexOf(" * ") != -1) {
+        result = 1;
+        List<String> simbolo = operacion.split("*");
+        for (String valor in simbolo) {
+          result *= _funciones(valor);
+        }
+      } else if (operacion.indexOf("√") != -1) {
+        List<String> simbolo = operacion.split("√");
+        result = sqrt(_funciones(simbolo.elementAt(1)));
+      } else if (operacion.indexOf("²") != -1) {
+        List<String> simbolo = operacion.split("²");
+        result = _funciones(simbolo.elementAt(0));
+        result *= result;
+      } else if (operacion.indexOf("%") != -1) {
+        List<String> simbolo = operacion.split("%");
+        result = double.parse(simbolo.elementAt(0));
+        result /= 100;
+      } else if (operacion == "") {
+        throw Exception("Termino vacio");
+      } else {
+        result = double.parse(operacion);
+      }
+      return result;
+    } catch (e) {
+      error = true;
+      return 0;
     }
   }
 }
